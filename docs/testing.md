@@ -11,10 +11,10 @@ Per Masterdoc §19: pragmatic-but-strong on the fragile/critical layers, light o
 | InnerTube client | `innertube_client` | Hard unit tests: request-context building (incl. remote-config overrides), search-response parsing against a canned fixture (song + video rows), HTTP/parse error paths (never throws), rate-limit interceptor retry/backoff/visitor-id-injection — added P1 |
 | Extraction / fallback chain | `extraction` | Hard unit tests: codec/bitrate stream selection against real `AudioOnlyStreamInfo` fixtures, identity-name-to-`YoutubeApiClient` mapping, orchestrator fallback-chain ordering + `layersTried` population (fake layer doubles, no network), PO-token/yt-dlp stub layers (always skip), rate-limited http client concurrency/pacing — added P1 |
 | Remote config | `remote_config` | Hard unit tests: schema v1/v2 parsing + round-trip + tolerant-of-unknown-fields, canonical-JSON key-order independence, Ed25519 accept/reject (tampered payload/signature/wrong key — three separate negative tests), cache round-trip + corrupt-file handling, fetcher fallback semantics (valid → applied+cached, tampered → last-known-good, network failure → embedded default, never throws) — added P1 |
-| Database | `database` | Hard unit tests against a real in-memory SQLite instance (`NativeDatabase.memory()`), not mocks. **Added P2:** `queue_items`/`playback_session` round-trip + single-row upsert tests |
+| Database | `database` | Hard unit tests against a real in-memory SQLite instance (`NativeDatabase.memory()`), not mocks. **Added P2:** `queue_items`/`playback_session` round-trip + single-row upsert tests. **Added P3:** `app_settings` schema-version + single-row upsert tests |
 | Audio engine | `audio_engine` | **Added P2.** `QueueController` (shuffle/repeat/reorder/remove/history — pure Dart, no media_kit) gets hard unit tests; `PlaybackCache` (LRU eviction, stale-entry fallback, corrupt-index tolerance) gets hard unit tests against a real temp-dir filesystem. `MediaKitPlayerEngine` itself (the real libmpv wiring) is not unit tested — real media_kit integration is verified manually on the reference laptop and via `app/bin/smoke_playback.dart` in CI |
 | Media integration | `media_integration` | Light unit tests on data shapes; platform-channel-backed behavior (SMTC overlay, hardware media keys) is manually verified on the reference laptop, not unit tested — `SmtcMediaTransportController` constructs a real `SMTCWindows` session, which needs the Rust bridge loaded and a real Windows session |
-| App wiring (`app/`) | `app` | **Added P2.** `PlaybackCoordinator` and `DebugPlaybackScreen` are tested with fakes for `AudioEngine`/`MediaTransportController`/`TrackResolver` (never real network, media_kit, or SMTC) — see `app/lib/services/track_resolver.dart`, the interface `ExtractionService` implements specifically so this is possible. Widget tests on key surfaces; light relative to domain layers |
+| App wiring (`app/`) | `app` | **Added P2.** `PlaybackCoordinator` is tested with fakes for `AudioEngine`/`MediaTransportController`/`TrackResolver` (never real network, media_kit, or SMTC) — see `app/lib/services/track_resolver.dart`, the interface `ExtractionService` implements specifically so this is possible. Widget tests on key surfaces; light relative to domain layers. **Added P3:** `AppShell` renders on a fake stack (widget test); `NowPlayingBar` visibility/content driven by a fake `AudioEngine`; `SettingsRepository` round-trips against a real in-memory `AppDatabase`; `DensityTokens`/`MotionTokens` are pure-logic unit/widget tests (the latter exercises both the OS `MediaQuery.disableAnimationsOf` signal and the user-facing `MotionLevel` override) |
 | End-to-end | `extraction` (`bin/smoke.dart`) | Headless CLI: fetch+apply remote config → InnerTube search → extraction orchestrator → HTTP range-fetch confirms the resolved URL serves real audio bytes. Runs on every CI build but is non-blocking (`continue-on-error` + `::warning::` annotation) since it depends on live YouTube — see `docs/deviations.md`. |
 | End-to-end (real playback) | `app` (`bin/smoke_playback.dart`) | **Added P2.** Headless CLI: search → resolve → load into a real `MediaKitPlayerEngine` → assert playback position actually advances over several seconds — supersedes P1's HTTP-range-fetch confirmation with genuine decoded audio. Lives in `app/` (not `packages/audio_engine`) so `audio_engine`'s own pubspec never gains an `extraction`/`innertube_client` dependency. Non-blocking in CI (`continue-on-error`) pending confirmation that libmpv can reliably initialize on a `windows-latest` runner outside a full `flutter build` output tree — see `docs/deviations.md`. SMTC overlay and hardware media keys have **no CI equivalent at all**; the reference-laptop manual pass is the only check for those. |
 
@@ -36,6 +36,22 @@ melos run test --no-select
 ## Notable Phase 0 setup detail
 
 `packages/database` tests open a real `NativeDatabase.memory()` (pure Dart, no Flutter) rather than mocking Drift. This works out of the box because Dart's native-assets build hooks (stable as of the `^3.9.0` SDK this workspace targets) auto-provision the `sqlite3` native library — no manual DLL bundling needed for pure-Dart tests.
+
+## Notable Phase 3 setup detail: mock the `window_manager` MethodChannel in widget tests
+
+`AppShell`'s title bar (`CustomTitleBar`) mounts `_WindowCaptionControls`, whose `initState` calls `windowManager.isMaximized()` to sync the maximize/restore icon — a real platform-channel call. Under `flutter test` there's no OS window backing it, so an unmocked call throws `MissingPluginException` inside an `unawaited` future, which can surface as a stray uncaught-error test failure even though nothing awaits it directly. Any widget test that pumps `AppShell`/`CustomTitleBar` must mock the `'window_manager'` channel first:
+
+```dart
+const windowManagerChannel = MethodChannel('window_manager');
+tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+  windowManagerChannel,
+  (call) async => call.method == 'isMaximized' ? false : null,
+);
+addTearDown(() => tester.binding.defaultBinaryMessenger
+    .setMockMethodCallHandler(windowManagerChannel, null));
+```
+
+See `app/test/widget_test.dart` for the reference implementation. Widget tests that only pump a sub-widget not depending on `window_manager` (e.g. `NowPlayingBar` in isolation, as `app/test/now_playing_bar_test.dart` does) don't need this.
 
 ## Notable Phase 2 setup detail: real `dart:io` calls must not run inside `testWidgets`
 

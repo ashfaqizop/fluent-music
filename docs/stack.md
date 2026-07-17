@@ -40,6 +40,13 @@ Environment: Dart SDK `^3.9.0`, Flutter 3.44.6 stable.
 | path_provider | 2.1.6 | app | **New at Phase 2.** Real per-user app-support directory for the database file, remote-config cache, and playback cache (replacing the temp-dir paths used only by P1's headless `bin/smoke.dart`) |
 | path_provider_windows | 2.3.0 | app (transitive) | Windows backend for `path_provider` |
 | drift | 2.34.2 | app (transitive, direct for query-builder types) | **New direct dependency at Phase 2** — `playback_coordinator.dart` needs `Value`/`OrderingTerm` for queue/session persistence queries |
+| system_theme | 3.3.0 | app | **New at Phase 3.** Reads the real Windows system accent color (`SystemTheme.accentColor.accent`) for the "follow Windows accent" option (§11.5). Chosen because it's maintained by the same author as `fluent_ui` and built specifically to feed `fluent_ui`'s `AccentColor` swatches — low integration risk, matches the project's existing single-maintainer exposure on `fluent_ui` itself. |
+
+## Phase 3 notes — no new dependency for dynamic color or motion
+
+- **Dynamic color from artwork** (§11.5) uses Flutter's own `ColorScheme.fromImageProvider` (`material.dart`) rather than adding `palette_generator` — that package is discontinued upstream (last real release predates this baseline; `palette_generator_master` is an unofficial community continuation). The built-in API covers the same need with zero added dependency risk.
+- **Motion system** (§11.7 — shared-element transitions, micro-interactions, shader warm-up) is built entirely on Flutter's own animation primitives (`Hero`, `AnimatedContainer`/`AnimatedScale`/`AnimatedSwitcher`, `PageRouteBuilder`, `ShaderWarmUp`/`PaintingBinding.shaderWarmUp`) — no `flutter_animate` or similar package added. Revisit only if these prove insufficient in a later phase.
+- **Typography**: Plus Jakarta Sans is bundled as static `.ttf` weights (Regular/Medium/SemiBold/Bold) fetched from the upstream OFL-1.1-licensed repo (`tokotype/PlusJakartaSans`) under `app/assets/fonts/PlusJakartaSans/`, with `OFL.txt` alongside — not `google_fonts`, which would either bundle the same files anyway or fetch over the network at runtime, and the app should stay fully offline-capable (§15.4's zero-telemetry-by-default spirit extends to not phoning a font CDN either).
 
 ## Tooling versions (this machine, at Phase 0)
 

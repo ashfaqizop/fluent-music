@@ -5,12 +5,12 @@ import 'package:test/test.dart';
 
 void main() {
   test(
-    'AppDatabase opens an in-memory instance with schemaVersion 2',
+    'AppDatabase opens an in-memory instance with schemaVersion 3',
     () async {
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
 
-      expect(db.schemaVersion, 2);
+      expect(db.schemaVersion, 3);
     },
   );
 
@@ -77,5 +77,37 @@ void main() {
     final rows = await db.select(db.playbackSession).get();
     expect(rows, hasLength(1));
     expect(rows.single.positionMs, 2000);
+  });
+
+  test('app settings default row is absent until first save', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    final row = await (db.select(
+      db.appSettings,
+    )..where((t) => t.id.equals(0))).getSingleOrNull();
+    expect(row, null);
+  });
+
+  test('app settings upsert replaces the single row', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+
+    Future<void> upsert(String densityMode) => db
+        .into(db.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(densityMode: Value(densityMode)),
+        );
+
+    await upsert('spacious');
+    await upsert('compact');
+
+    final rows = await db.select(db.appSettings).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.densityMode, 'compact');
+    // Untouched columns keep their column defaults on first insert.
+    expect(rows.single.backdropMode, 'mica');
+    expect(rows.single.accentMode, 'windows');
+    expect(rows.single.motionLevel, 'full');
   });
 }

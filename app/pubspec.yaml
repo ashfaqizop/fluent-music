@@ -34,6 +34,7 @@ dependencies:
   path_provider: any
   remote_config:
     path: ../packages/remote_config
+  system_theme: any
   window_manager: any
   youtube_explode_dart: any
 
@@ -43,3 +44,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/full-logo.png
+    - assets/branding/only-icon-logo.png
+  fonts:
+    - family: Plus Jakarta Sans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-Regular.ttf
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans/PlusJakartaSans-Bold.ttf
+          weight: 700

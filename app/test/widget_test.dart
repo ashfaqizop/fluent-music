@@ -4,11 +4,13 @@ import 'dart:io';
 import 'package:app/main.dart';
 import 'package:app/playback_coordinator.dart';
 import 'package:app/providers.dart';
+import 'package:app/services/settings_repository.dart';
 import 'package:app/services/track_resolver.dart';
 import 'package:audio_engine/audio_engine.dart';
 import 'package:core/core.dart';
 import 'package:database/database.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:innertube_client/innertube_client.dart';
@@ -192,9 +194,21 @@ void main() {
     if (tempDir.existsSync()) await tempDir.delete(recursive: true);
   });
 
-  testWidgets('FluentMusicApp renders the debug playback screen', (
+  testWidgets('FluentMusicApp renders the app shell on the Home tab', (
     WidgetTester tester,
   ) async {
+    const windowManagerChannel = MethodChannel('window_manager');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      windowManagerChannel,
+      (call) async => call.method == 'isMaximized' ? false : null,
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        windowManagerChannel,
+        null,
+      ),
+    );
+
     final audioEngine = _FakeAudioEngine();
     addTearDown(audioEngine.dispose);
     final transportController = _FakeMediaTransportController();
@@ -220,13 +234,16 @@ void main() {
             transportController,
           ),
           playbackCoordinatorProvider.overrideWithValue(coordinator),
+          settingsRepositoryProvider.overrideWithValue(
+            SettingsRepository(database),
+          ),
         ],
         child: const FluentMusicApp(),
       ),
     );
     await tester.pump();
 
-    expect(find.text('Nothing playing'), findsOneWidget);
-    expect(find.text('Fluent Music — Phase 2 debug harness'), findsOneWidget);
+    expect(find.text('Fluent Music'), findsOneWidget);
+    expect(find.textContaining('Phase 4'), findsOneWidget);
   });
 }

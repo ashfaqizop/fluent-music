@@ -7,6 +7,7 @@
 library;
 
 import 'package:app/playback_coordinator.dart';
+import 'package:app/services/settings_repository.dart';
 import 'package:app/services/track_resolver.dart';
 import 'package:audio_engine/audio_engine.dart';
 import 'package:database/database.dart';
@@ -41,5 +42,11 @@ final mediaTransportControllerProvider = Provider<MediaTransportController>(
 /// Wires [audioEngineProvider] and [mediaTransportControllerProvider]
 /// together and persists/restores queue state.
 final playbackCoordinatorProvider = Provider<PlaybackCoordinator>(
+  (ref) => throw UnimplementedError('overridden in main()'),
+);
+
+/// Persists/loads Phase 3's appearance settings (density, backdrop, accent,
+/// motion) — see `design_system/settings/appearance_settings_controller.dart`.
+final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => throw UnimplementedError('overridden in main()'),
 );
