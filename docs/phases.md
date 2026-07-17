@@ -6,7 +6,7 @@ Living checklist for Masterdoc §20. Each phase updates its own row/checklist wh
 |---|---|---|
 | P0 — Scaffold, dev-env, CI | ✅ Done (2026-07-17) | Clean `flutter build windows` in CI; empty app window launches; portable zip produced; docs scaffolded |
 | P1 — InnerTube + extraction core | ✅ Done (2026-07-17) | Search → resolve → play a track's audio headless; remote config verified+applied |
-| P2 — Audio engine + core system integration | ⬜ Not started | Full queue playback, gapless, SMTC + media keys, resume, smooth on reference laptop |
+| P2 — Audio engine + core system integration | ✅ Done (2026-07-17) | Full queue playback, gapless, SMTC + media keys, resume, smooth on reference laptop |
 | P3 — UI shell + design system | ⬜ Not started | Navigable shell, dynamic color, density switch, motion respecting reduce-motion, perf budget met |
 | P4 — Content surfaces | ⬜ Not started | Home/Explore/Search/Artist/Album populate from InnerTube, degrade gracefully |
 | P5 — Library, playlists, likes, history | ⬜ Not started | Local + synced (local-fork) playlists, likes/library in both modes, history + import/export |
@@ -44,3 +44,22 @@ Living checklist for Masterdoc §20. Each phase updates its own row/checklist wh
 **Known deviations:** see `docs/deviations.md` — two client-identity catalogs (search/browse vs. stream resolution) rather than one unified pool; `AlternateIdentityLayer` is sequential rather than a second race; the signed config is hosted as an in-repo file rather than a GitHub Release asset; the CI smoke-test step is non-blocking; "play a track's audio" is interpreted as an HTTP-range-fetch confirmation pending Phase 2's `media_kit` wiring.
 
 **Next:** P2 — Audio engine + core system integration, gated on human approval of this phase.
+
+## P2 — details
+
+**Built:**
+
+- `audio_engine`: expanded `AudioEngine` interface (queue model, shuffle/repeat, volume/speed, reactive streams for position/duration/buffering/current-track/queue/errors/volume). `QueueController` — pure-Dart queue/shuffle/repeat/history logic, no media_kit dependency, fully unit-testable. `MediaKitPlayerEngine` — wraps `media_kit`'s `Player`; gapless playback via a rolling "current + one look-ahead" `Media` window (`Player.add`/`Player.remove`, never a full reopen during natural track-boundary advances, only on explicit skip/jump/load/remove-current); prefetches the look-ahead track's stream URL ahead of time. `PlaybackCache` — self-contained JSON-indexed disk cache for streamed audio (~2GB default cap, LRU eviction), deliberately independent of `database` (layering rule).
+- `database`: schema v2 — `queue_items` (ordered queue snapshot) and `playback_session` (position/shuffle/repeat/volume, singleton row) tables, with a real `MigrationStrategy`.
+- `media_integration`: `SmtcMediaTransportController` — real Windows SMTC overlay via `smtc_windows`; hardware media keys covered by the same SMTC session (no `hotkey_manager` needed for this). `MediaTransportController` interface extended with `updatePlaybackStatus`.
+- `app/`: `services/track_resolver.dart` (`TrackResolver` interface) + `services/extraction_service.dart` (concrete implementation owning the `ExtractionOrchestrator`/`RemoteConfig`/InnerTube wiring — the bridge `audio_engine` never has to know about, per the layering rule). `providers.dart` (plain Riverpod DI). `playback_coordinator.dart` — wires `AudioEngine` ⇄ `MediaTransportController`, persists/restores queue+position+shuffle+repeat+volume across restarts. `debug_playback_screen.dart` — temporary Phase 2 debug harness (search/enqueue/queue/transport controls), replaced by the real shell in Phase 3. `main.dart` — async bootstrap (media_kit, SMTC runtime, database, extraction service) ahead of `runApp`.
+- `app/bin/smoke_playback.dart` — headless CLI: search → resolve → load into a real `MediaKitPlayerEngine` → confirms playback position genuinely advances, superseding P1's HTTP-range-fetch confirmation with real decoded audio. Wired into CI, non-blocking.
+- `.github/workflows/ci.yml`: added a Rust toolchain setup step (`dtolnay/rust-toolchain@stable`) ahead of the Windows build, since `smtc_windows`'s Rust bridge now enters `app/`'s build graph; added the new playback smoke-test step (non-blocking).
+
+**Verification:** `dart analyze .` clean (info-level only, consistent with the project's established `--fatal-infos`-off convention). `dart format --output=none --set-exit-if-changed .` clean. Full test suite green: `core`/`innertube_client`/`extraction`/`remote_config`/`database` (`dart test`) and `audio_engine`/`media_integration`/`app` (`flutter test`) — including new hard unit tests for `QueueController` (shuffle/repeat/reorder/remove/history semantics), `PlaybackCache` (eviction, stale-entry fallback, corrupt-index tolerance), `database`'s new tables (round-trip + singleton-row upsert), and an `app` widget test exercising `FluentMusicApp` → `DebugPlaybackScreen` end-to-end against fakes for `AudioEngine`/`MediaTransportController`/`TrackResolver`. `flutter build windows --release` succeeds with `media_kit` and `smtc_windows`'s Rust bridge compiled in (first real native-Rust build in this repo, ~5.5 min on this dev machine); `scripts/make-portable.ps1` produces the phase-gate zip.
+
+**Known deviations:** see `docs/deviations.md` — hardware media keys ride on `SmtcMediaTransportController`'s SMTC session rather than a separate `hotkey_manager` registration; `smtc_windows` 1.1.0 has no public seek/position-change-request API, so `MediaTransportCommand.seek` is never emitted (in-app seeking still works); the playback cache is a JSON sidecar rather than a `database` table, to keep `audio_engine` free of a `database` dependency; the new playback smoke test lives in `app/bin/` rather than `packages/audio_engine/bin/`, for the same layering reason.
+
+**Not yet verified (requires the reference laptop):** the SMTC overlay's actual rendering/control, hardware media keys while the window is unfocused/minimized, resume-across-restart end to end, and general smoothness per §14 — these have no CI equivalent and are the responsibility of the phase-gate manual pass (§0.3).
+
+**Next:** P3 — UI shell + design system, gated on human approval of this phase.

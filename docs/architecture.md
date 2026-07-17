@@ -1,6 +1,6 @@
 # Architecture
 
-> Generated at Phase 0 (§20, P0). Reflects what actually exists in the repo today; refresh every phase per §0.1.
+> Generated at Phase 0 (§20, P0); refreshed at Phase 2 (§20, P2). Reflects what actually exists in the repo today; refresh every phase per §0.1.
 
 ## Pattern
 
@@ -21,16 +21,24 @@ fluent-music/
 │  ├─ core/                      # Result/error types, logging, constants, rate-limit primitives (pure Dart)
 │  ├─ innertube_client/          # Real InnerTube search/browse client + rate-limit interceptor (pure Dart)
 │  ├─ extraction/                # Parallel-race fallback chain, stream selection, PO-token/yt-dlp stubs (pure Dart)
-│  ├─ audio_engine/               # AudioEngine interface (Flutter)
-│  ├─ database/                  # Drift AppDatabase (pure Dart, sqlite3 native)
-│  ├─ media_integration/         # SMTC/tray/media-key interfaces (Flutter)
+│  ├─ audio_engine/               # AudioEngine + MediaKitPlayerEngine, QueueController, PlaybackCache (Flutter)
+│  ├─ database/                  # Drift AppDatabase: queue_items + playback_session tables (pure Dart, sqlite3 native)
+│  ├─ media_integration/         # SmtcMediaTransportController (Flutter; smtc_windows/Rust)
 │  └─ remote_config/              # Signed fetch/verify/apply/cache, Ed25519 signing (pure Dart)
 └─ app/                          # the Flutter application
+   ├─ bin/
+   │  └─ smoke_playback.dart     # P2 headless smoke test: search -> resolve -> real media_kit playback
    └─ lib/
-      ├─ features/               # empty in P0; feature-first surfaces from P4 onward
-      ├─ design_system/          # empty in P0; theme/motion/density from P3
-      ├─ app_shell/              # empty in P0; window chrome/nav from P3
-      └─ main.dart                # Phase 0: bare FluentApp + window_manager + ProviderScope
+      ├─ features/               # empty; feature-first surfaces from P4 onward
+      ├─ design_system/          # empty; theme/motion/density from P3
+      ├─ app_shell/              # empty; window chrome/nav from P3
+      ├─ services/
+      │  ├─ track_resolver.dart      # TrackResolver interface (search + resolveStream)
+      │  └─ extraction_service.dart  # concrete TrackResolver: owns extraction/innertube_client/remote_config wiring
+      ├─ providers.dart          # plain Riverpod providers, overridden with real instances in main()
+      ├─ playback_coordinator.dart  # wires AudioEngine <-> MediaTransportController, persists/restores queue
+      ├─ debug_playback_screen.dart # temporary P2 debug harness; replaced by the real shell in P3
+      └─ main.dart                # async bootstrap (media_kit/SMTC/db/extraction) + FluentApp
 ```
 
 ## Package dependency direction
@@ -39,7 +47,13 @@ fluent-music/
 
 As of Phase 1, `innertube_client` and `extraction` both also depend on `remote_config` (for the `RemoteConfig` type driving identity ordering/overrides/rate-limit tuning) — this is a legitimate new edge, not a layering violation: `remote_config` sits below both, has no dependents above them, and stays pure Dart.
 
-`media_integration` is declared but **not yet referenced by `app/`** — its `smtc_windows` dependency (Rust, via `flutter_rust_bridge`) resolves into the workspace lockfile without pulling native Rust compilation into `app`'s build graph until whichever phase first wires it in (SMTC lands in P2; tray/hotkeys/Discord in P8).
+**Phase 2 confirms the sibling-packages-don't-depend-on-each-other rule for `audio_engine`.** `audio_engine`'s queue never touches `extraction`/`innertube_client` types — `QueueTrack` instead carries an app-supplied lazy `resolveStreamUri` closure. `app/lib/services/extraction_service.dart` is what actually owns the `ExtractionOrchestrator`/`RemoteConfig` wiring (the same recipe as `packages/extraction/bin/smoke.dart`) and binds it into that closure when constructing `QueueTrack`s. `audio_engine` and `app` depend on `TrackResolver` (`app/lib/services/track_resolver.dart`), an interface `ExtractionService` implements, purely so `PlaybackCoordinator` and the debug screen are testable with a fake instead of live network/remote-config I/O.
+
+`audio_engine`'s playback cache (`PlaybackCache`) is deliberately self-contained — a JSON sidecar index on disk, not a `database` table — so `audio_engine` doesn't gain a `database` dependency either. Masterdoc §8.1 lists a "cache index" among the database's eventual tables; revisit if a later phase (e.g. P7's Downloads view) needs a unified view of streamed-cache and downloaded-file usage. See `docs/deviations.md`.
+
+`media_integration` is now referenced by `app/` — SMTC lands in Phase 2 as planned. Its `smtc_windows` dependency (Rust, via `flutter_rust_bridge`) now enters `app`'s Windows build graph, so CI provisions a Rust toolchain before building (see `.github/workflows/ci.yml`). Hardware media keys are covered by the same SMTC session (`SMTCWindows.buttonPressStream`) rather than a separate `hotkey_manager` registration — `hotkey_manager` remains declared for Phase 8's user-rebindable custom hotkeys. Tray/toast/Discord RPC are still P8.
+
+`app`'s persistence (resume-across-restart) lives in `app/lib/playback_coordinator.dart`, not inside `audio_engine` or `media_integration` — it reads `AudioEngine`'s reactive streams and writes to two new `database` tables (`queue_items`, `playback_session`; schema v2), and restores them into `AudioEngine.loadQueue` on startup. This keeps both `audio_engine` and `media_integration` free of a `database` dependency, consistent with the sibling-independence rule above.
 
 ## Workspace tooling
 

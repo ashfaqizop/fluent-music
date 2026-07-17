@@ -97,3 +97,39 @@ Per Masterdoc §0.2: when a spec conflicts with reality, stop, log it here (date
 **Correction applied:** `packages/extraction/bin/smoke.dart` interprets "play" as confirming the resolved stream URL is genuinely fetchable, byte-serving audio content — it issues an HTTP range request (`bytes=0-65535`) against the resolved URL and checks for a `200`/`206` response with a non-empty body. Real audible playback via `media_kit` is Phase 2's job and will get its own, stronger smoke test then.
 
 **Trade-off:** None significant — this is the only capability available at this point in the roadmap, and it does genuinely prove the resolved URL is playable content, just not through an actual audio pipeline yet.
+
+---
+
+## 2026-07-17 — hardware media keys covered by SMTC, not `hotkey_manager`
+
+**What the doc implies:** Masterdoc §12 lists "global media keys" as a Phase 2 deliverable alongside SMTC, and §4 pairs `hotkey_manager` with that requirement.
+
+**What reality is:** On Windows, an app holding the foreground SMTC session receives hardware media-key presses (play/pause/next/previous) through the same `SMTCWindows.buttonPressStream` used for the overlay's own buttons — verified by reading `smtc_windows` 1.1.0's source (`SMTCConfig`'s `playEnabled`/`pauseEnabled`/`nextEnabled`/`prevEnabled` flags gate exactly this). No separate global-hotkey registration is needed to satisfy "media keys respond even when unfocused."
+
+**Correction applied:** `SmtcMediaTransportController` (`packages/media_integration/lib/src/smtc_media_transport_controller.dart`) covers both the SMTC overlay and hardware media keys through one `buttonPressStream` subscription. `hotkey_manager` stays a declared `media_integration` dependency, unused until Phase 8's user-rebindable custom hotkeys (a genuinely different feature — arbitrary key combos, not just the four fixed OS media keys).
+
+**Trade-off:** If reference-laptop testing shows SMTC-sourced key events are unreliable while the window is unfocused/minimized, the fallback is to additionally register the four media keys via `hotkey_manager` and merge both sources into `SmtcMediaTransportController.commands`. Not needed unless that manual verification fails.
+
+---
+
+## 2026-07-17 — `smtc_windows` 1.1.0 has no public seek/position-change-request API
+
+**What the doc implies:** Masterdoc §12 says the SMTC overlay should support "seek" via its timeline; `MediaTransportCommand.seek` was already scaffolded in Phase 0's interface stub.
+
+**What reality is:** `smtc_windows`'s generated Rust bridge (`lib/src/rust/api/api.dart`) does expose `smtcPositionChangeRequestEvent`, but the public `SMTCWindows` class (`lib/src/smtc_windows_base.dart`) never wires it up or exposes it — only `buttonPressStream`, `shuffleChangeStream`, and `repeatModeChangeStream` are public, and the internal handle (`_internal`) needed to call the lower-level function directly is private to the package. Verified by reading the installed package source rather than assuming from the pub.dev README.
+
+**Correction applied:** `SmtcMediaTransportController` never emits `MediaTransportCommand.seek`. The enum value is kept (documented as currently unreachable) for forward-compatibility with a future `smtc_windows` release or an alternate transport. Users can still seek via the in-app UI (the debug harness's slider today; the real now-playing surface from Phase 3 onward) — only scrubbing directly on the Windows SMTC flyout is unavailable.
+
+**Trade-off:** A minor overlay feature gap (no OS-level scrub), not a core playback gap. Revisit if a `smtc_windows` update exposes this publicly, or if it's worth forking/patching the package.
+
+---
+
+## 2026-07-17 — playback cache is a JSON sidecar, not a `database` table
+
+**What the doc implies:** Masterdoc §8.1 lists a "cache index" among the tables the database owns, and §7 asks for a size-limited streamed-audio cache.
+
+**What reality is:** Giving `audio_engine` a `database` dependency purely for a cache index would be the same kind of sibling-package coupling the layering rule already forbids for `extraction`/`innertube_client` (see `docs/architecture.md`). `PlaybackCache` needs the index for exactly one purpose — deciding whether a track has a local file — with no other package needing to read it in Phase 2.
+
+**Correction applied:** `PlaybackCache` (`packages/audio_engine/lib/src/playback_cache.dart`) persists its index as a small JSON file next to the cached audio files, using plain `dart:io`. `audio_engine` stays free of a `database` dependency.
+
+**Trade-off:** If a later phase (e.g. P7's Downloads view) wants one unified view of streamed-cache and downloaded-file storage usage, this will need migrating into a real `database` table then — deliberately deferred rather than built speculatively now.

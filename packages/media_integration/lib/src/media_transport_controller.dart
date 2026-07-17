@@ -3,16 +3,19 @@ import 'package:media_integration/src/now_playing_info.dart';
 /// Drives the Windows SMTC overlay and responds to global media keys
 /// (Masterdoc §12). Backed by `smtc_windows` (requires rustup at build).
 ///
-/// This package is intentionally not yet referenced by `app/` in Phase 0 —
-/// declaring the dependency here resolves it into the workspace lockfile
-/// without pulling its native Rust bridge into the app's build graph until
-/// whichever later phase wires it in (see `docs/deviations.md`).
+/// Phase 2's `SmtcMediaTransportController` implementation covers hardware
+/// media keys through the same SMTC session rather than a separate
+/// `hotkey_manager` registration — see `docs/deviations.md`.
 abstract interface class MediaTransportController {
   /// Pushes updated track metadata to the SMTC overlay.
   Future<void> updateNowPlaying(NowPlayingInfo info);
 
   /// Updates the SMTC timeline to [position] out of [duration].
   Future<void> updatePlaybackPosition(Duration position, Duration duration);
+
+  /// Updates whether the SMTC overlay shows a playing or paused state
+  /// (which icon it renders for its own play/pause button).
+  Future<void> updatePlaybackStatus({required bool isPlaying});
 
   /// Emits commands received from SMTC or a global media key.
   Stream<MediaTransportCommand> get commands;
@@ -36,5 +39,12 @@ enum MediaTransportCommand {
   previous,
 
   /// Seek to a new position (carried separately by the caller).
+  ///
+  /// `smtc_windows` 1.1.0 does not expose the SMTC scrubber's
+  /// position-change-request event through its public API (only
+  /// `buttonPressStream`, covering play/pause/next/previous) — so no
+  /// current [MediaTransportController] implementation actually emits
+  /// this. Kept in the enum for forward-compatibility with a future
+  /// package version or an alternate transport.
   seek,
 }

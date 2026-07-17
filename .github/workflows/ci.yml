@@ -25,6 +25,15 @@ jobs:
           flutter-version: 3.44.x
           cache: true
 
+      # media_integration's smtc_windows dependency (Rust, via
+      # flutter_rust_bridge) enters app/'s build graph starting Phase 2;
+      # `flutter build windows` compiles its Rust bridge as part of the
+      # CMake build, so rustup/cargo must be present before the "Build &
+      # package portable release" step below. windows-latest runners are
+      # not guaranteed to ship it, so install explicitly rather than assume.
+      - name: Set up Rust toolchain (for smtc_windows)
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Activate melos
         run: dart pub global activate melos
 
@@ -58,6 +67,17 @@ jobs:
         shell: pwsh
         run: |
           Write-Output "::warning::Integration smoke test failed - likely a live-YouTube/CI-network issue (geo-blocking, soft rate-limiting, or an upstream extraction break), not necessarily a code regression. See the 'Integration smoke test' step log above. This step is intentionally non-blocking; see docs/deviations.md."
+
+      - name: Playback smoke test (search -> resolve -> real media_kit decode)
+        id: playback_smoke
+        continue-on-error: true
+        run: dart run app/bin/smoke_playback.dart
+
+      - name: Surface playback smoke-test outcome
+        if: steps.playback_smoke.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Write-Output "::warning::Playback smoke test failed - could be a live-YouTube/CI-network issue, or media_kit failing to locate/initialize libmpv outside a full flutter-build output tree (unverified as of Phase 2 - see docs/deviations.md). Non-blocking pending confirmation this is reliable in CI; the reference-laptop manual pass is the authoritative check for Phase 2's DoD."
 
       - name: Build & package portable release
         shell: pwsh

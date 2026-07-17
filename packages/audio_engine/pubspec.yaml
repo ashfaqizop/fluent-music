@@ -13,6 +13,7 @@ dependencies:
     path: ../core
   flutter:
     sdk: flutter
+  http: any
   media_kit: any
   media_kit_libs_audio: any
   media_kit_native_event_loop: any

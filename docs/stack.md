@@ -27,21 +27,25 @@ Environment: Dart SDK `^3.9.0`, Flutter 3.44.6 stable.
 | path | 1.9.1 | remote_config | **New at Phase 1.** Cross-platform-safe path joining for `RemoteConfigCache`'s file location; small, ubiquitous, non-controversial. |
 | http | 1.6.0 | extraction | **New at Phase 1, as a direct dependency** (previously only transitive via `youtube_explode_dart`). `RateLimitedHttpClient` (production code, not test-only) wraps a plain `http.Client` for rate-limit hygiene around stream-manifest calls. |
 | http_parser | 4.1.2 | extraction (dev) | **New at Phase 1.** `MediaType` construction in `stream_selection_test.dart`'s hand-built `AudioOnlyStreamInfo` fixtures. |
-| smtc_windows | 1.1.0 | media_integration | SMTC overlay; requires rustup at build. Declared but not yet wired into `app/` (§ deviations) |
-| tray_manager | 0.5.3 | media_integration | System tray |
-| hotkey_manager | 0.2.3 | media_integration | Global media keys/hotkeys |
+| smtc_windows | 1.1.0 | media_integration | SMTC overlay; requires rustup at build. **Wired into `app/` at Phase 2** via `SmtcMediaTransportController` — CI now provisions a Rust toolchain (see `docs/architecture.md`) |
+| flutter_rust_bridge | 2.12.0 | media_integration (transitive, via smtc_windows) | Generated Rust bridge; `PlatformInt64` resolves to plain `int` on Windows/native (not `BigInt`, which is the web-only branch) |
+| tray_manager | 0.5.3 | media_integration | System tray; still unused until Phase 8 |
+| hotkey_manager | 0.2.3 | media_integration | Declared for Phase 8's user-rebindable custom hotkeys; **not used for Phase 2's hardware media keys**, which ride on `smtc_windows`'s SMTC session instead — see `docs/deviations.md` |
 | local_notifier | 0.1.6 | media_integration | Toast notifications |
 | dart_discord_presence | 1.2.0 | media_integration | Discord Rich Presence |
 | logging | 1.3.0 | core | `AppLogger` wrapper |
 | meta | 1.18.0 | core | Annotations |
 | very_good_analysis | 7.0.0 | workspace (dev) | Lint ruleset, `--fatal-infos` intentionally **not** used in CI — see `docs/deviations.md` |
 | melos | 7.8.1 | workspace (dev) | Monorepo tooling |
+| path_provider | 2.1.6 | app | **New at Phase 2.** Real per-user app-support directory for the database file, remote-config cache, and playback cache (replacing the temp-dir paths used only by P1's headless `bin/smoke.dart`) |
+| path_provider_windows | 2.3.0 | app (transitive) | Windows backend for `path_provider` |
+| drift | 2.34.2 | app (transitive, direct for query-builder types) | **New direct dependency at Phase 2** — `playback_coordinator.dart` needs `Value`/`OrderingTerm` for queue/session persistence queries |
 
 ## Tooling versions (this machine, at Phase 0)
 
 - Flutter 3.44.6 stable / Dart 3.12.2
 - Visual Studio 2026 Community, Desktop development with C++ workload
-- rustup (present; not yet exercised by CI since `media_integration` isn't linked into `app/`'s build graph)
+- rustup (present on this dev machine; CI now provisions its own via `dtolnay/rust-toolchain@stable` as of Phase 2, since `smtc_windows` is now linked into `app/`'s build graph)
 - git 2.54, gh CLI 2.95
 
 ## Why `resolution: workspace` instead of a `packages:`-glob `melos.yaml`

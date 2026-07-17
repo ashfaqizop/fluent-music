@@ -9,15 +9,33 @@ environment:
 resolution: workspace
 
 dependencies:
+  audio_engine:
+    path: ../packages/audio_engine
   core:
     path: ../packages/core
+  database:
+    path: ../packages/database
+  dio: any
+  drift: any
+  extraction:
+    path: ../packages/extraction
   fluent_ui: any
   fluentui_system_icons: any
   flutter:
     sdk: flutter
   flutter_acrylic: any
   flutter_riverpod: any
+  http: any
+  innertube_client:
+    path: ../packages/innertube_client
+  media_integration:
+    path: ../packages/media_integration
+  media_kit: any
+  path_provider: any
+  remote_config:
+    path: ../packages/remote_config
   window_manager: any
+  youtube_explode_dart: any
 
 dev_dependencies:
   flutter_test:
