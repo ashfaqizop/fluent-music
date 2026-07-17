@@ -18,13 +18,13 @@ fluent-music/
 │  ├─ setup-dev.ps1              # idempotent dev-env check/provision
 │  └─ make-portable.ps1          # builds + zips the portable phase-gate release
 ├─ packages/
-│  ├─ core/                      # Result/error types, logging, constants (pure Dart)
-│  ├─ innertube_client/          # InnerTube client-identity model (pure Dart)
-│  ├─ extraction/                # ExtractionResult, PoTokenProvider slot (pure Dart)
+│  ├─ core/                      # Result/error types, logging, constants, rate-limit primitives (pure Dart)
+│  ├─ innertube_client/          # Real InnerTube search/browse client + rate-limit interceptor (pure Dart)
+│  ├─ extraction/                # Parallel-race fallback chain, stream selection, PO-token/yt-dlp stubs (pure Dart)
 │  ├─ audio_engine/               # AudioEngine interface (Flutter)
 │  ├─ database/                  # Drift AppDatabase (pure Dart, sqlite3 native)
 │  ├─ media_integration/         # SMTC/tray/media-key interfaces (Flutter)
-│  └─ remote_config/              # RemoteConfig model + verifier interface (pure Dart)
+│  └─ remote_config/              # Signed fetch/verify/apply/cache, Ed25519 signing (pure Dart)
 └─ app/                          # the Flutter application
    └─ lib/
       ├─ features/               # empty in P0; feature-first surfaces from P4 onward
@@ -36,6 +36,8 @@ fluent-music/
 ## Package dependency direction
 
 `app` → feature packages (`extraction`, `audio_engine`, `database`, `media_integration`, `remote_config`, `innertube_client`) → `core`. No package below `app` depends on Flutter unless it genuinely needs the Flutter SDK (`audio_engine`, `media_integration`); `core`, `innertube_client`, `extraction`, `database`, `remote_config` are pure Dart and unit-testable without Flutter, per §5.2's requirement.
+
+As of Phase 1, `innertube_client` and `extraction` both also depend on `remote_config` (for the `RemoteConfig` type driving identity ordering/overrides/rate-limit tuning) — this is a legitimate new edge, not a layering violation: `remote_config` sits below both, has no dependents above them, and stays pure Dart.
 
 `media_integration` is declared but **not yet referenced by `app/`** — its `smtc_windows` dependency (Rust, via `flutter_rust_bridge`) resolves into the workspace lockfile without pulling native Rust compilation into `app`'s build graph until whichever phase first wires it in (SMTC lands in P2; tray/hotkeys/Discord in P8).
 

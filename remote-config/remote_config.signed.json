@@ -1,0 +1,27 @@
+{
+  "payload": {
+    "schemaVersion": 2,
+    "clientIdentityOrder": [
+      "WEB_REMIX",
+      "ANDROID_MUSIC",
+      "IOS",
+      "ANDROID_VR",
+      "TV"
+    ],
+    "raceStaggerMs": 0,
+    "poTokenEnabled": false,
+    "disabledIdentities": [],
+    "identityOverrides": {},
+    "maxConcurrentRaceLanes": 0,
+    "raceLaneTimeoutMs": 8000,
+    "rateLimit": {
+      "minRequestIntervalMs": 150,
+      "maxConcurrencyPerHost": 4,
+      "backoffBaseMs": 500,
+      "backoffMaxMs": 20000,
+      "backoffJitterRatio": 0.3
+    },
+    "refreshIntervalMinutes": 180
+  },
+  "signature": "FdKXMg4c+otTkdotZfO94wQ9p2T8i33ZNiAMwLqfYIedCbFVqyBKOfUXEPaXB7wsXgpB3WQOOSwvi18nq6lXAQ=="
+}

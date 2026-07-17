@@ -12,6 +12,8 @@ dependencies:
   core:
     path: ../core
   dio: any
+  remote_config:
+    path: ../remote_config
 
 dev_dependencies:
   test: any

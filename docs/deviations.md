@@ -37,3 +37,63 @@ Per Masterdoc §0.2: when a spec conflicts with reality, stop, log it here (date
 **Correction applied:** All Phase 0 public APIs were in fact given dartdoc comments (the info-level issues were fixed, not suppressed) — `melos run analyze` is fully clean (`dart analyze .`, no `--fatal-infos`). The flag itself is left off the CI script so that future phases aren't blocked by every single missing-doc info during fast iteration; `dart analyze` still fails the build on real errors/warnings. This is a deliberate strictness choice, not a masterdoc requirement — revisit if the team wants `--fatal-infos` enforced in CI too.
 
 **Trade-off:** Slightly less strict than maximal; real defects (errors/warnings) still fail CI either way.
+
+---
+
+## 2026-07-17 — two client-identity catalogs, not one unified pool
+
+**What the doc implies:** Masterdoc §6.2 describes "a pool of InnerTube client identities" that participate in the parallel race, as a single concept shared across the extraction layer.
+
+**What reality is:** `innertube_client` (search/browse) and `extraction` (stream resolution) hit different InnerTube surfaces through different code paths. `innertube_client` builds its own request context and can use any identity, including `WEB_REMIX` (the real identity YT Music's web player uses for search/browse). `extraction` resolves streams via `youtube_explode_dart` 3.1.0's `StreamClient.getManifest(videoId, {ytClients})`, which only accepts that library's own `YoutubeApiClient` catalog (`.ios`, `.android`, `.androidSdkless`, `.androidMusic`, `.androidVr`, `.safari`, `.tv`, `.mediaConnect`, `.mweb`) — verified by reading the installed package source. **There is no `WEB_REMIX` constant in this catalog.**
+
+**Correction applied:** `packages/extraction/lib/src/client_identity_mapping.dart` maps remote-config identity names to `YoutubeApiClient` consts; `WEB_REMIX` has no mapping and is filtered out of the stream-resolution race only (logged at `fine`) — it remains the identity `innertube_client` uses for search/browse. See `docs/extraction.md` §2 for the full mapping table.
+
+**Trade-off:** None significant — this reflects how the two libraries actually work; forcing a single catalog would mean either losing `WEB_REMIX` for search/browse (degrading it) or pretending `youtube_explode_dart` supports an identity it doesn't.
+
+---
+
+## 2026-07-17 — `AlternateIdentityLayer` is sequential, not a second race
+
+**What the doc implies:** Masterdoc §6.3 step 2 says the fallback chain's second layer is "alternate client identities / params from remote config," implying another race-like attempt.
+
+**What reality is:** Layer 1 (`ClientRaceLayer`) already races every identity remote config has promoted into `clientIdentityOrder`. A second identical parallel race over the same pool would be redundant.
+
+**Correction applied:** Layer 2 (`AlternateIdentityLayer`) is instead a **sequential**, cheap long-tail safety net over identities the app knows about (`client_identity_mapping.dart`'s full catalog) that remote config hasn't promoted into `clientIdentityOrder` yet — a different, complementary role rather than a duplicate race.
+
+**Trade-off:** None significant — this preserves the spirit of "try alternates from remote config" while avoiding pointless duplicate work.
+
+---
+
+## 2026-07-17 — signed remote config hosted as an in-repo file, not a GitHub Release asset
+
+**What the doc implies:** Masterdoc §6.5 says the signed config is "hosted on the GitHub repo/Releases" (offering both options).
+
+**What reality is:** Either works; a GitHub Release asset requires round-tripping the Releases API (create/find a release, upload an asset, get its URL) for every publish, while an in-repo file just needs a commit.
+
+**Correction applied:** The signed config lives at `remote-config/remote_config.signed.json` in the repo, fetched via a `main`-pinned `raw.githubusercontent.com` URL. §22 only requires the **private** signing key stay out of the repo — the signed artifact itself is meant to be public, so committing it is fine, and git history gives a free audit trail of every published config change.
+
+**Trade-off:** None significant for a solo maintainer; a GitHub Release would give versioned rollback "for free" via release tags, which this approach doesn't — revisit if that becomes valuable.
+
+---
+
+## 2026-07-17 — the P1 integration smoke test is CI-non-blocking
+
+**What the doc implies:** Masterdoc §19 asks for "a CI integration smoke test that actually resolves + plays a track," implying it gates the build like other tests.
+
+**What reality is:** This test depends on live, unversioned third-party behavior (YouTube) outside repo control — geo-blocking, soft rate-limiting, or an upstream extraction break could fail it independent of code quality, since it makes real network calls.
+
+**Correction applied:** `packages/extraction/bin/smoke.dart` runs on every CI build (so regressions are caught immediately) but is marked `continue-on-error: true` with a visible `::warning::` annotation on failure. All real unit tests — including extraction/innertube_client/remote_config's own hard failure-path tests — remain fully hard-blocking; only this one live-network step is relaxed.
+
+**Trade-off:** A real extraction break could land without turning CI red. Mitigated by the warning annotation being visible on every run, and by remote config's whole purpose being to fix exactly this kind of break without a code change.
+
+---
+
+## 2026-07-17 — "play a track's audio" interpreted as an HTTP range-fetch confirmation
+
+**What the doc implies:** Masterdoc §20's P1 DoD says the CLI/test harness must "search → resolve → play a track's audio" headless.
+
+**What reality is:** `audio_engine`'s `media_kit` wiring is explicitly Phase 2 scope (§20 P2) — as of Phase 1 it's still an interface-only stub with no libmpv integration. There is no audio-playback capability to call yet.
+
+**Correction applied:** `packages/extraction/bin/smoke.dart` interprets "play" as confirming the resolved stream URL is genuinely fetchable, byte-serving audio content — it issues an HTTP range request (`bytes=0-65535`) against the resolved URL and checks for a `200`/`206` response with a non-empty body. Real audible playback via `media_kit` is Phase 2's job and will get its own, stronger smoke test then.
+
+**Trade-off:** None significant — this is the only capability available at this point in the roadmap, and it does genuinely prove the resolved URL is playable content, just not through an actual audio pipeline yet.

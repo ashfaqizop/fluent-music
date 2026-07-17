@@ -11,9 +11,14 @@ resolution: workspace
 dependencies:
   core:
     path: ../core
+  dio: any
+  http: any
   innertube_client:
     path: ../innertube_client
+  remote_config:
+    path: ../remote_config
   youtube_explode_dart: any
 
 dev_dependencies:
+  http_parser: any
   test: any

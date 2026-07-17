@@ -12,7 +12,9 @@ dependencies:
   core:
     path: ../core
   crypto: any
+  cryptography: any
   dio: any
+  path: any
 
 dev_dependencies:
   test: any

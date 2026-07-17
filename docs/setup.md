@@ -43,4 +43,12 @@ melos run test --no-select           # all tests (pure-Dart, then Flutter)
 
 ## Secrets
 
-No secrets are required to build/test/run Phase 0. Later phases (OAuth client, remote-config signing key, Last.fm API key) will document their local-dev secret setup here when they land (§22).
+Building, testing, and running Phase 1's extraction layer requires **zero secrets** — search/resolve work fine against the embedded `RemoteConfig.embeddedDefault` even with no remote-config fetch at all, and `packages/extraction/bin/smoke.dart` runs unauthenticated against public InnerTube/YouTube endpoints.
+
+One secret exists at the repo level, needed only to *publish* an updated remote config (not to build/test/run the app):
+
+| Secret | Used by | Purpose |
+|---|---|---|
+| `REMOTE_CONFIG_PRIVATE_KEY` | `packages/remote_config/tool/sign_config.dart` (run manually by the maintainer) | Ed25519 private key signing `remote-config/remote_config.json` → `remote_config.signed.json`. Never read by the app or by CI's build/test/smoke steps. |
+
+Later phases (OAuth client — P6, Last.fm API key — P8) will document their local-dev secret setup here when they land (§22).

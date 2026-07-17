@@ -20,9 +20,13 @@ Environment: Dart SDK `^3.9.0`, Flutter 3.44.6 stable.
 | drift_dev | 2.34.0 | database (dev) | Codegen |
 | sqlite3 | 3.4.0 | database | Native SQLite bindings; auto-provisioned via Dart's native-assets build hooks (no manual DLL step needed) |
 | build_runner | 2.15.1 | database (dev) | Codegen runner |
-| dio | 5.10.0 | innertube_client, remote_config | HTTP client |
-| youtube_explode_dart | 3.1.0 | extraction | Stream resolution (§6.3, layer 1) |
-| crypto | 3.0.7 | remote_config | Signature verification (§6.5) |
+| dio | 5.10.0 | innertube_client, remote_config, extraction (smoke harness) | HTTP client; now driving `InnerTubeRateLimitInterceptor` and `RemoteConfigFetcher` (Phase 1) |
+| youtube_explode_dart | 3.1.0 | extraction | Stream resolution (§6.3, layer 1); now actually exercised via `ClientRaceLayer`/`AlternateIdentityLayer` (Phase 1) |
+| crypto | 3.0.7 | remote_config | Repurposed at Phase 1 for a cheap SHA-256 cache-change short-circuit — real signature verification moved to `cryptography` (below), since `crypto` is hash-only and can't do asymmetric signatures |
+| cryptography | 2.9.0 | remote_config | **New at Phase 1.** Pure-Dart Ed25519 sign/verify for the remote-config signing scheme (§6.5, §22). Chosen over `ed25519_edwards` for being more actively maintained/widely used — signing is security-critical, so an established library beats hand-rolled or niche crypto. No native/FFI dependency, so `remote_config` stays buildable without extra toolchain setup. |
+| path | 1.9.1 | remote_config | **New at Phase 1.** Cross-platform-safe path joining for `RemoteConfigCache`'s file location; small, ubiquitous, non-controversial. |
+| http | 1.6.0 | extraction | **New at Phase 1, as a direct dependency** (previously only transitive via `youtube_explode_dart`). `RateLimitedHttpClient` (production code, not test-only) wraps a plain `http.Client` for rate-limit hygiene around stream-manifest calls. |
+| http_parser | 4.1.2 | extraction (dev) | **New at Phase 1.** `MediaType` construction in `stream_selection_test.dart`'s hand-built `AudioOnlyStreamInfo` fixtures. |
 | smtc_windows | 1.1.0 | media_integration | SMTC overlay; requires rustup at build. Declared but not yet wired into `app/` (§ deviations) |
 | tray_manager | 0.5.3 | media_integration | System tray |
 | hotkey_manager | 0.2.3 | media_integration | Global media keys/hotkeys |

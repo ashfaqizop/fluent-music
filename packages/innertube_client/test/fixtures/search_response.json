@@ -1,0 +1,104 @@
+{
+  "contents": {
+    "tabbedSearchResultsRenderer": {
+      "tabs": [
+        {
+          "tabRenderer": {
+            "content": {
+              "sectionListRenderer": {
+                "contents": [
+                  {
+                    "musicShelfRenderer": {
+                      "title": { "runs": [{ "text": "Songs" }] },
+                      "contents": [
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      {
+                                        "text": "Test Song Title",
+                                        "navigationEndpoint": {
+                                          "watchEndpoint": { "videoId": "song123" }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      { "text": "Song" },
+                                      { "text": " • " },
+                                      { "text": "Test Artist" },
+                                      { "text": " • " },
+                                      { "text": "Test Album" },
+                                      { "text": " • " },
+                                      { "text": "3:45" }
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "musicShelfRenderer": {
+                      "title": { "runs": [{ "text": "Videos" }] },
+                      "contents": [
+                        {
+                          "musicResponsiveListItemRenderer": {
+                            "overlay": {
+                              "musicItemThumbnailOverlayRenderer": {
+                                "content": {
+                                  "musicPlayButtonRenderer": {
+                                    "playNavigationEndpoint": {
+                                      "watchEndpoint": { "videoId": "video456" }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            "flexColumns": [
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [{ "text": "Test Video Title" }]
+                                  }
+                                }
+                              },
+                              {
+                                "musicResponsiveListItemFlexColumnRenderer": {
+                                  "text": {
+                                    "runs": [
+                                      { "text": "Video" },
+                                      { "text": " • " },
+                                      { "text": "Some Channel" },
+                                      { "text": " • " },
+                                      { "text": "4:20" }
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

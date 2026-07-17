@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/full-logo.png" alt="Fluent Music" width="480">
+</p>
+
 # Fluent Music
 
 A premium, native-feeling, high-performance, open-source **YouTube Music client for Windows**, built in Flutter, talking directly to YouTube's private InnerTube API. Music-only, Windows-only, ultra-polished custom Fluent UI.

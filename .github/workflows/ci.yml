@@ -48,6 +48,17 @@ jobs:
       - name: Run tests
         run: melos run test --no-select
 
+      - name: Integration smoke test (search -> resolve -> fetch audio)
+        id: smoke
+        continue-on-error: true
+        run: dart run packages/extraction/bin/smoke.dart
+
+      - name: Surface smoke-test outcome
+        if: steps.smoke.outcome == 'failure'
+        shell: pwsh
+        run: |
+          Write-Output "::warning::Integration smoke test failed - likely a live-YouTube/CI-network issue (geo-blocking, soft rate-limiting, or an upstream extraction break), not necessarily a code regression. See the 'Integration smoke test' step log above. This step is intentionally non-blocking; see docs/deviations.md."
+
       - name: Build & package portable release
         shell: pwsh
         run: ./scripts/make-portable.ps1
