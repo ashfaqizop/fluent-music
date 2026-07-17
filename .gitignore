@@ -23,6 +23,7 @@ melos_*.iml
 *.iml
 *.ipr
 *.iws
+.claude/
 
 # OS
 Thumbs.db
