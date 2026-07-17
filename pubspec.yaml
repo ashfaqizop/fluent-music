@@ -1,0 +1,58 @@
+name: fluent_music_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+workspace:
+  - packages/core
+  - packages/innertube_client
+  - packages/extraction
+  - packages/audio_engine
+  - packages/database
+  - packages/media_integration
+  - packages/remote_config
+  - app
+
+dev_dependencies:
+  melos: any
+  very_good_analysis: any
+
+melos:
+  name: fluent_music
+  repository: https://github.com/ashfaqizop/fluent-music
+
+  scripts:
+    analyze:
+      description: Analyze all packages.
+      run: dart analyze .
+      exec:
+        concurrency: 1
+
+    format-check:
+      description: Check formatting across all packages.
+      run: dart format --output=none --set-exit-if-changed .
+      exec:
+        concurrency: 1
+
+    test:dart:
+      description: Run tests for pure-Dart packages.
+      run: dart test
+      exec:
+        concurrency: 1
+      packageFilters:
+        flutter: false
+        dirExists: test
+
+    test:flutter:
+      description: Run tests for Flutter packages.
+      run: flutter test
+      exec:
+        concurrency: 1
+      packageFilters:
+        flutter: true
+        dirExists: test
+
+    test:
+      description: Run all tests (pure-Dart then Flutter packages).
+      run: melos run test:dart --no-select && melos run test:flutter --no-select

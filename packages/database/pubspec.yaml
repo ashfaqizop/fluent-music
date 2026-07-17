@@ -1,0 +1,20 @@
+name: database
+description: Drift (SQLite) schema, DAOs, and migrations for Fluent Music.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.0
+
+resolution: workspace
+
+dependencies:
+  core:
+    path: ../core
+  drift: any
+  sqlite3: any
+
+dev_dependencies:
+  build_runner: any
+  drift_dev: any
+  test: any

@@ -1,0 +1,27 @@
+name: app
+description: "Fluent Music - a premium native YouTube Music client for Windows."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.9.0
+
+resolution: workspace
+
+dependencies:
+  core:
+    path: ../packages/core
+  fluent_ui: any
+  fluentui_system_icons: any
+  flutter:
+    sdk: flutter
+  flutter_acrylic: any
+  flutter_riverpod: any
+  window_manager: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

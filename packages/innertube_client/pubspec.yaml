@@ -1,0 +1,17 @@
+name: innertube_client
+description: Pure-Dart InnerTube client - request builder, client identities, endpoints.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.0
+
+resolution: workspace
+
+dependencies:
+  core:
+    path: ../core
+  dio: any
+
+dev_dependencies:
+  test: any

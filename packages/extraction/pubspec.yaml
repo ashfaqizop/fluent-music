@@ -1,0 +1,19 @@
+name: extraction
+description: Stream resolution, parallel-race fallback chain, PO-token slot, yt-dlp adapter.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.0
+
+resolution: workspace
+
+dependencies:
+  core:
+    path: ../core
+  innertube_client:
+    path: ../innertube_client
+  youtube_explode_dart: any
+
+dev_dependencies:
+  test: any

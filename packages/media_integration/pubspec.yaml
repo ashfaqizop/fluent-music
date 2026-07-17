@@ -1,0 +1,24 @@
+name: media_integration
+description: SMTC, media keys, tray, toast, Discord RPC, startup (Masterdoc §12).
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.0
+
+resolution: workspace
+
+dependencies:
+  core:
+    path: ../core
+  dart_discord_presence: any
+  flutter:
+    sdk: flutter
+  hotkey_manager: any
+  local_notifier: any
+  smtc_windows: any
+  tray_manager: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter

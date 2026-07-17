@@ -1,0 +1,42 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+*.drift.dart
+
+# melos
+melos_*.iml
+.melos_tool/
+
+# Flutter Windows runner build output
+**/windows/flutter/ephemeral/
+**/windows/x64/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Packaging output
+dist/
+*.zip
+
+# Logs
+*.log
